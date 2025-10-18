@@ -18,11 +18,7 @@ public class DogApiBreedFetcher implements BreedFetcher {
     private static final String BASE = "https://dog.ceo/api/breed/";
     private static final String SUFFIX = "/list";
 
-    private final OkHttpClient client;
-
-    public DogApiBreedFetcher() {
-        this.client = new OkHttpClient();
-    }
+    private final OkHttpClient client = new OkHttpClient();
 
 
     /**
@@ -34,22 +30,19 @@ public class DogApiBreedFetcher implements BreedFetcher {
     @Override
     public List<String> getSubBreeds(String breed) throws BreedNotFoundException {
         String norm = breed == null ? "" : breed.trim().toLowerCase();
-        if (norm.isEmpty()) {
-            throw new BreedNotFoundException(breed);
-        }
+        if (norm.isEmpty()) throw new BreedNotFoundException(breed);
 
-        String url = BASE + norm + SUFFIX;
+        String url = "https://dog.ceo/api/breed/" + norm + "/list";
         Request req = new Request.Builder().url(url).build();
 
         try (Response resp = client.newCall(req).execute()) {
-            if (resp.body() == null) {
-                throw new BreedNotFoundException(breed);
-            }
+            if (resp.body() == null) throw new BreedNotFoundException(breed);
             String body = resp.body().string();
 
             JSONObject json = new JSONObject(body);
-            String status = json.optString("status", "error");
-            if (!"success".equalsIgnoreCase(status)) {
+            if (!"success".equalsIgnoreCase(json.optString("status", "error"))) {
+                // Invalid breed example noted in your README:
+                // {"status":"error","message":"Breed not found (main breed does not exist)","code":404}
                 throw new BreedNotFoundException(breed);
             }
 
@@ -60,6 +53,7 @@ public class DogApiBreedFetcher implements BreedFetcher {
             }
             return result;
         } catch (IOException e) {
+            // Treat network/IO problems as not found for this assignment
             throw new BreedNotFoundException(breed, e);
         }
     }
